@@ -1,7 +1,7 @@
 {
   "name": "twitch-bot-discord",
   "version": "1.0.0",
-  "description": "Bot Discord pour les notifications Twitch - Configuration via Discord",
+  "description": "Bot Discord simple et efficace pour recevoir des notifications automatiques lorsque votre streamer Twitch préféré est en live. Configuration via OAuth Twitch.",
   "main": "src/index.js",
   "type": "module",
   "scripts": {
@@ -11,13 +11,28 @@
   },
   "keywords": [
     "discord",
+    "discord-bot",
     "twitch",
-    "bot",
+    "twitch-api",
+    "twitch-notifications",
     "streaming",
-    "notifications"
+    "notifications",
+    "oauth",
+    "discord.js",
+    "automation",
+    "live-stream",
+    "stream-alerts"
   ],
-  "author": "",
+  "author": "heyimbrioche",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/heyimbrioche/twitch-bot-discord.git"
+  },
+  "bugs": {
+    "url": "https://github.com/heyimbrioche/twitch-bot-discord/issues"
+  },
+  "homepage": "https://github.com/heyimbrioche/twitch-bot-discord#readme",
   "dependencies": {
     "discord.js": "^14.14.1",
     "axios": "^1.6.2",
