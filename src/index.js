@@ -74,19 +74,22 @@ class TwitchDiscordBot {
   }
 
   async initializeOAuth() {
-    const twitchClientId = process.env.TWITCH_CLIENT_ID;
-    const twitchClientSecret = process.env.TWITCH_CLIENT_SECRET;
-    const redirectUri = process.env.TWITCH_REDIRECT_URI || 'http://localhost:3000/oauth/callback';
-    const oauthPort = parseInt(process.env.OAUTH_PORT || '3000');
+    // Charger les credentials OAuth depuis la base de données
+    const oauthSettings = await this.database.getOAuthSettings();
 
-    if (!twitchClientId || !twitchClientSecret) {
-      logger.warn('TWITCH_CLIENT_ID ou TWITCH_CLIENT_SECRET non défini. Le service OAuth ne sera pas disponible.');
-      logger.warn('Pour activer OAuth, ajoutez ces variables dans votre fichier .env');
+    if (!oauthSettings.isConfigured) {
+      logger.warn('Les credentials Twitch OAuth ne sont pas configurés.');
+      logger.warn('Utilisez /setup oauth pour configurer les credentials OAuth.');
       return;
     }
 
     try {
-      this.oauthService = new OAuthService(twitchClientId, twitchClientSecret, redirectUri, oauthPort);
+      this.oauthService = new OAuthService(
+        oauthSettings.twitchClientId,
+        oauthSettings.twitchClientSecret,
+        oauthSettings.redirectUri,
+        oauthSettings.oauthPort
+      );
       await this.oauthService.startServer();
       logger.info('Service OAuth Twitch initialisé avec succès');
     } catch (error) {
@@ -115,8 +118,15 @@ class TwitchDiscordBot {
               continue;
             }
 
+            // Charger les credentials OAuth depuis la DB
+            const oauthSettings = await this.database.getOAuthSettings();
+            if (!oauthSettings.isConfigured) {
+              logger.warn(`Credentials OAuth non configurés, impossible de charger le service pour ${guildId}`);
+              continue;
+            }
+
             const twitchService = new TwitchService(
-              process.env.TWITCH_CLIENT_ID,
+              oauthSettings.twitchClientId,
               settings.twitchAccessToken,
               settings.twitchChannelName,
               settings.twitchChannelId,

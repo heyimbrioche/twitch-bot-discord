@@ -35,6 +35,33 @@ export default {
       subcommand
         .setName('disconnect')
         .setDescription('Déconnecter votre compte Twitch')
+    )
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName('oauth')
+        .setDescription('⚙️ Configurer les credentials Twitch OAuth (Admin bot uniquement)')
+        .addStringOption(option =>
+          option
+            .setName('client_id')
+            .setDescription('Twitch Client ID')
+            .setRequired(true)
+        )
+        .addStringOption(option =>
+          option
+            .setName('client_secret')
+            .setDescription('Twitch Client Secret')
+            .setRequired(true)
+        )
+        .addStringOption(option =>
+          option
+            .setName('redirect_uri')
+            .setDescription('URI de redirection OAuth (optionnel)')
+        )
+        .addIntegerOption(option =>
+          option
+            .setName('port')
+            .setDescription('Port pour le serveur OAuth (optionnel, défaut: 3000)')
+        )
     ),
   cooldown: 3,
   async execute(interaction, bot) {
@@ -46,11 +73,12 @@ export default {
       await interaction.deferReply({ ephemeral: true });
 
       // Vérifier que le service OAuth est configuré
-      if (!bot.oauthService) {
+      const oauthSettings = await bot.database.getOAuthSettings();
+      if (!oauthSettings.isConfigured || !bot.oauthService) {
         const embed = new EmbedBuilder()
           .setColor('#FF0000')
           .setTitle('❌ Service OAuth non configuré')
-          .setDescription('Le bot n\'a pas été configuré avec les credentials Twitch OAuth.\n\nContactez l\'administrateur du bot.')
+          .setDescription('Le bot n\'a pas été configuré avec les credentials Twitch OAuth.\n\nLe propriétaire du bot doit utiliser `/setup oauth` pour configurer les credentials.')
           .setTimestamp();
 
         return interaction.editReply({ embeds: [embed] });
@@ -108,9 +136,10 @@ export default {
           }
 
           // Créer et démarrer le nouveau service Twitch
+          const oauthSettings = await bot.database.getOAuthSettings();
           const TwitchService = (await import('../services/TwitchService.js')).default;
           const twitchService = new TwitchService(
-            bot.oauthService.clientId,
+            oauthSettings.twitchClientId,
             authData.accessToken,
             authData.userInfo.login,
             authData.userInfo.id,
@@ -271,6 +300,60 @@ export default {
         .setTimestamp();
 
       await interaction.editReply({ embeds: [embed] });
+    } else if (subcommand === 'oauth') {
+      // Vérifier que l'utilisateur est le propriétaire du bot
+      const application = await interaction.client.application.fetch();
+      if (interaction.user.id !== application.owner?.id) {
+        return interaction.reply({
+          embeds: [new EmbedBuilder()
+            .setColor('#FF0000')
+            .setTitle('❌ Accès refusé')
+            .setDescription('Seul le propriétaire du bot peut configurer les credentials OAuth.')
+            .setTimestamp()],
+          ephemeral: true
+        });
+      }
+
+      await interaction.deferReply({ ephemeral: true });
+
+      const clientId = interaction.options.getString('client_id');
+      const clientSecret = interaction.options.getString('client_secret');
+      const redirectUri = interaction.options.getString('redirect_uri') || 'http://localhost:3000/oauth/callback';
+      const port = interaction.options.getInteger('port') || 3000;
+
+      // Sauvegarder les credentials OAuth
+      await bot.database.updateOAuthSetting('twitchClientId', clientId);
+      await bot.database.updateOAuthSetting('twitchClientSecret', clientSecret);
+      await bot.database.updateOAuthSetting('redirectUri', redirectUri);
+      await bot.database.updateOAuthSetting('oauthPort', port);
+
+      // Arrêter l'ancien service OAuth s'il existe
+      if (bot.oauthService) {
+        bot.oauthService.stopServer();
+      }
+
+      // Initialiser le nouveau service OAuth
+      try {
+        const OAuthService = (await import('../services/OAuthService.js')).default;
+        bot.oauthService = new OAuthService(clientId, clientSecret, redirectUri, port);
+        await bot.oauthService.startServer();
+
+        const embed = new EmbedBuilder()
+          .setColor('#00FF00')
+          .setTitle('✅ Configuration OAuth enregistrée!')
+          .setDescription(`**Client ID:** ${clientId.substring(0, 10)}...\n**Redirect URI:** ${redirectUri}\n**Port:** ${port}\n\nLe service OAuth est maintenant actif. Les utilisateurs peuvent utiliser \`/setup connect\` pour se connecter.`)
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [embed] });
+      } catch (error) {
+        const embed = new EmbedBuilder()
+          .setColor('#FF0000')
+          .setTitle('❌ Erreur')
+          .setDescription(`Impossible de démarrer le service OAuth:\n\n${error.message}`)
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [embed] });
+      }
     }
   },
 };

@@ -50,7 +50,7 @@ Un bot Discord simple et efficace pour recevoir des notifications automatiques l
    ```bash
    cp .env.example .env
    ```
-   Puis éditez `.env` avec vos credentials (voir [Configuration](#-configuration) ci-dessous)
+   Puis éditez `.env` avec **uniquement votre token Discord** (voir [Configuration](#-configuration) ci-dessous)
 
 4. **Déployer les commandes Discord**
    ```bash
@@ -94,30 +94,42 @@ Un bot Discord simple et efficace pour recevoir des notifications automatiques l
 
 ### 3. Configurer le fichier `.env`
 
-Créez un fichier `.env` à la racine du projet avec le contenu suivant :
+Créez un fichier `.env` à la racine du projet avec **uniquement votre token Discord** :
 
 ```env
 # Token Discord (requis)
 DISCORD_TOKEN=votre_token_discord_ici
 
-# Configuration Twitch OAuth (requis)
-TWITCH_CLIENT_ID=votre_twitch_client_id
-TWITCH_CLIENT_SECRET=votre_twitch_client_secret
-TWITCH_REDIRECT_URI=http://localhost:3000/oauth/callback
-OAUTH_PORT=3000
-
 # Optionnel - Nécessaire uniquement pour le déploiement des commandes
+# Vous pouvez les supprimer après le premier déploiement
 DISCORD_CLIENT_ID=votre_discord_client_id
 DISCORD_GUILD_ID=votre_guild_id
 ```
 
-> 💡 **Astuce** : Après le premier déploiement, vous pouvez supprimer `DISCORD_CLIENT_ID` et `DISCORD_GUILD_ID` du `.env`
+> 💡 **Important** : Les credentials Twitch OAuth se configurent **via Discord** avec la commande `/setup oauth` (voir ci-dessous). Vous n'avez pas besoin de les mettre dans le fichier `.env` !
 
 ## 📝 Utilisation
 
 ### Configuration via Discord
 
 Une fois le bot démarré, utilisez ces commandes dans votre serveur Discord :
+
+#### 0. Configurer les credentials Twitch OAuth (Propriétaire du bot uniquement)
+
+**⚠️ IMPORTANT :** Avant que les utilisateurs puissent se connecter, le propriétaire du bot doit configurer les credentials Twitch OAuth :
+
+```
+/setup oauth client_id:<votre_client_id> client_secret:<votre_secret> [redirect_uri:<uri>] [port:<port>]
+```
+
+**Comment obtenir les credentials Twitch OAuth ?**
+- Allez sur [Twitch Developer Console](https://dev.twitch.tv/console/apps)
+- Créez une nouvelle application
+- Copiez le **Client ID**
+- Générez un **Client Secret**
+- Dans **OAuth Redirect URLs**, ajoutez : `http://localhost:3000/oauth/callback`
+
+> 💡 **Note** : Seul le propriétaire du bot (celui qui a créé l'application Discord) peut exécuter cette commande.
 
 #### 1. Se connecter avec Twitch
 ```
@@ -152,6 +164,7 @@ Cliquez sur le bouton "Se connecter avec Twitch", autorisez l'application, et to
 ### ⚙️ Configuration
 | Commande | Description |
 |----------|-------------|
+| `/setup oauth` | Configurer les credentials Twitch OAuth (Propriétaire bot uniquement) |
 | `/setup connect` | Se connecter avec votre compte Twitch (OAuth) |
 | `/setup channel` | Définir le canal de notifications |
 | `/setup test` | Tester la configuration Twitch |

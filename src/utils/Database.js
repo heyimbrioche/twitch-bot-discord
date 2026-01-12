@@ -45,6 +45,32 @@ class Database {
     settings[key] = value;
     return await this.setGuildSettings(guildId, settings);
   }
+
+  // Global OAuth settings - Configuration OAuth globale pour le bot
+  async getOAuthSettings() {
+    const settings = await this.db.get('oauth_settings');
+    if (!settings) {
+      return {
+        twitchClientId: null,
+        twitchClientSecret: null,
+        redirectUri: 'http://localhost:3000/oauth/callback',
+        oauthPort: 3000,
+        isConfigured: false,
+      };
+    }
+    return settings;
+  }
+
+  async setOAuthSettings(settings) {
+    return await this.db.set('oauth_settings', settings);
+  }
+
+  async updateOAuthSetting(key, value) {
+    const settings = await this.getOAuthSettings();
+    settings[key] = value;
+    settings.isConfigured = !!(settings.twitchClientId && settings.twitchClientSecret);
+    return await this.setOAuthSettings(settings);
+  }
 }
 
 export default Database;
