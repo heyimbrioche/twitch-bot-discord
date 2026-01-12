@@ -208,9 +208,7 @@ export default {
     const subcommand = interaction.options.getSubcommand();
     const guildId = interaction.guild.id;
 
-    if (subcommandGroup === 'admin') {
-      
-      if (adminSubcommand === 'oauth') {
+    if (subcommandGroup === 'admin' && subcommand === 'oauth') {
         // Vérifier que l'utilisateur est le propriétaire du bot
         const application = await interaction.client.application.fetch();
         if (interaction.user.id !== application.owner?.id) {
@@ -264,7 +262,7 @@ export default {
 
           await interaction.editReply({ embeds: [embed] });
         }
-      }
+      return;
     } else if (subcommand === 'status') {
       const settings = await bot.database.getGuildSettings(guildId);
       const oauthSettings = await bot.database.getOAuthSettings();
