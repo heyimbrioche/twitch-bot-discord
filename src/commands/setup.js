@@ -16,8 +16,8 @@ export default {
         .setName('message')
         .setDescription('Message personnalisé à envoyer avec les notifications (optionnel)')
     )
-    .addSubcommand(subcommand =>
-      subcommand
+    .addSubcommandGroup(group =>
+      group
         .setName('admin')
         .setDescription('⚙️ Configuration admin (Propriétaire bot uniquement)')
         .addSubcommand(subcommand =>
@@ -204,11 +204,11 @@ export default {
       return;
     }
 
+    const subcommandGroup = interaction.options.getSubcommandGroup();
     const subcommand = interaction.options.getSubcommand();
     const guildId = interaction.guild.id;
 
-    if (subcommand === 'admin') {
-      const adminSubcommand = interaction.options.getSubcommand(false);
+    if (subcommandGroup === 'admin') {
       
       if (adminSubcommand === 'oauth') {
         // Vérifier que l'utilisateur est le propriétaire du bot
