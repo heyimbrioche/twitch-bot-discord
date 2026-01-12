@@ -30,6 +30,7 @@ class Database {
         twitchChannelId: null,
         twitchUserId: null,
         notificationChannelId: null,
+        customMessage: null,
         isConfigured: false,
       };
     }

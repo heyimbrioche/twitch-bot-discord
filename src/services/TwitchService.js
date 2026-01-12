@@ -132,8 +132,9 @@ class TwitchService {
               const channel = await client.channels.fetch(notificationChannelId);
               if (channel) {
                 const embed = this.createStreamEmbed(streamData);
+                const customMessage = settings.customMessage || '@everyone 🔴 **NOUVEAU STREAM!**';
                 await channel.send({ 
-                  content: `@everyone 🔴 **NOUVEAU STREAM!**`,
+                  content: customMessage,
                   embeds: [embed] 
                 });
                 logger.info(`Notification de stream envoyée pour ${streamData.user.display_name} sur le serveur ${guildId}`);
