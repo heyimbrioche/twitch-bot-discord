@@ -23,12 +23,13 @@ class Database {
     const settings = await this.db.get(`guild_${guildId}`);
     if (!settings) {
       return {
-        twitchClientId: null,
-        twitchClientSecret: null,
-        twitchChannelName: null,
-        notificationChannelId: null,
         twitchAccessToken: null,
+        twitchRefreshToken: null,
         twitchTokenExpiry: null,
+        twitchChannelName: null,
+        twitchChannelId: null,
+        twitchUserId: null,
+        notificationChannelId: null,
         isConfigured: false,
       };
     }

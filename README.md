@@ -5,7 +5,7 @@ Un bot Discord simple et efficace pour recevoir des notifications automatiques l
 ## ✨ Fonctionnalités
 
 - 🔴 **Notifications automatiques** : Alertes dès qu'un stream commence
-- ⚙️ **Configuration via Discord** : Tout se configure directement dans Discord, pas besoin de fichier .env complexe
+- 🔐 **Connexion OAuth Twitch** : Connectez-vous directement avec votre compte Twitch, aucune saisie manuelle nécessaire
 - 📺 **Multi-serveurs** : Chaque serveur peut surveiller sa propre chaîne Twitch
 - 🎮 **Informations détaillées** : Titre du stream, jeu, nombre de spectateurs
 - 🔄 **Vérification automatique** : Vérifie toutes les 2 minutes si un stream est en ligne
@@ -15,7 +15,7 @@ Un bot Discord simple et efficace pour recevoir des notifications automatiques l
 ### Prérequis
 - Node.js 18.0.0 ou supérieur
 - Un bot Discord (créé sur [Discord Developer Portal](https://discord.com/developers/applications))
-- Un compte Twitch avec API credentials
+- Une application Twitch (pour OAuth)
 
 ### Étapes
 
@@ -30,12 +30,19 @@ cd twitch-bot-discord
 npm install
 ```
 
-3. **Configurer le token Discord**
+3. **Configurer les variables d'environnement**
 
-Créez un fichier `.env` à la racine du projet avec uniquement le token Discord :
+Créez un fichier `.env` à la racine du projet :
 
 ```env
+# Token Discord (requis)
 DISCORD_TOKEN=votre_token_discord_ici
+
+# Configuration Twitch OAuth (requis pour que les utilisateurs se connectent)
+TWITCH_CLIENT_ID=votre_twitch_client_id
+TWITCH_CLIENT_SECRET=votre_twitch_client_secret
+TWITCH_REDIRECT_URI=http://localhost:3000/oauth/callback
+OAUTH_PORT=3000
 ```
 
 **Comment obtenir le token Discord ?**
@@ -51,6 +58,14 @@ DISCORD_TOKEN=votre_token_discord_ici
   - Permissions: `Administrator` (ou sélectionnez manuellement)
 - Invitez le bot avec l'URL générée
 
+**Comment obtenir les credentials Twitch OAuth ?**
+- Allez sur https://dev.twitch.tv/console/apps
+- Créez une nouvelle application
+- Copiez le **Client ID**
+- Générez un **Client Secret**
+- Dans les **OAuth Redirect URLs**, ajoutez : `http://localhost:3000/oauth/callback`
+  - Pour la production, ajoutez aussi votre domaine : `https://votre-domaine.com/oauth/callback`
+
 4. **Déployer les commandes**
 ```bash
 npm run deploy
@@ -59,12 +74,9 @@ npm run deploy
 **Note:** Vous aurez besoin de `DISCORD_CLIENT_ID` et `DISCORD_GUILD_ID` pour le déploiement. Ajoutez-les temporairement dans `.env` :
 
 ```env
-DISCORD_TOKEN=votre_token
 DISCORD_CLIENT_ID=votre_client_id
 DISCORD_GUILD_ID=votre_guild_id
 ```
-
-Après le déploiement, vous pouvez supprimer `DISCORD_CLIENT_ID` et `DISCORD_GUILD_ID` du `.env` - seul `DISCORD_TOKEN` est nécessaire pour le fonctionnement du bot.
 
 5. **Démarrer le bot**
 ```bash
@@ -75,16 +87,14 @@ npm start
 
 Une fois le bot démarré, utilisez les commandes suivantes dans Discord :
 
-### 1. Configurer Twitch
+### 1. Se connecter avec Twitch
 ```
-/setup twitch client_id:<votre_client_id> client_secret:<votre_secret> channel_name:<nom_chaîne>
+/setup connect
 ```
 
-**Comment obtenir les credentials Twitch ?**
-- Allez sur https://dev.twitch.tv/console/apps
-- Créez une nouvelle application
-- Copiez le **Client ID**
-- Générez un **Client Secret**
+Cette commande vous donnera un lien pour vous connecter avec votre compte Twitch. Cliquez sur le bouton, autorisez l'application, et toutes vos informations seront automatiquement récupérées !
+
+**Note:** Vous devez être le propriétaire de la chaîne Twitch que vous souhaitez surveiller.
 
 ### 2. Définir le canal de notifications
 ```
@@ -101,13 +111,19 @@ Une fois le bot démarré, utilisez les commandes suivantes dans Discord :
 /setup status
 ```
 
+### 5. Déconnecter votre compte
+```
+/setup disconnect
+```
+
 ## 📚 Commandes Disponibles
 
 ### ⚙️ Configuration
-- `/setup twitch` - Configurer les credentials Twitch
+- `/setup connect` - Se connecter avec votre compte Twitch (OAuth)
 - `/setup channel` - Définir le canal de notifications
 - `/setup test` - Tester la configuration
 - `/setup status` - Voir la configuration actuelle
+- `/setup disconnect` - Déconnecter votre compte Twitch
 
 ### 📺 Twitch
 - `/twitch status` - Vérifier si le stream est en ligne
@@ -122,34 +138,53 @@ Une fois le bot démarré, utilisez les commandes suivantes dans Discord :
 twitch-bot-discord/
 ├── src/
 │   ├── commands/          # Commandes slash
-│   │   ├── setup.js      # Configuration
-│   │   ├── twitch.js     # Commandes Twitch
-│   │   └── help.js       # Aide
-│   ├── events/           # Événements Discord
+│   │   ├── setup.js       # Configuration OAuth
+│   │   ├── twitch.js      # Commandes Twitch
+│   │   └── help.js        # Aide
+│   ├── events/            # Événements Discord
 │   │   ├── ready.js
 │   │   ├── interactionCreate.js
 │   │   └── messageCreate.js
-│   ├── services/         # Services externes
-│   │   └── TwitchService.js
-│   ├── utils/            # Utilitaires
+│   ├── services/          # Services externes
+│   │   ├── TwitchService.js
+│   │   └── OAuthService.js # Service OAuth Twitch
+│   ├── utils/             # Utilitaires
 │   │   ├── logger.js
-│   │   ├── Database.js
-│   │   └── config.js
-│   ├── index.js          # Point d'entrée
+│   │   └── Database.js
+│   ├── index.js           # Point d'entrée
 │   └── deploy-commands.js # Déploiement des commandes
-├── data/                 # Base de données (générée automatiquement)
-├── logs/                 # Logs (générés automatiquement)
-├── .env                  # Variables d'environnement
+├── data/                  # Base de données (générée automatiquement)
+├── logs/                  # Logs (générés automatiquement)
+├── .env                   # Variables d'environnement
 ├── package.json
 └── README.md
 ```
 
 ## 🔧 Fonctionnement
 
-1. Le bot vérifie toutes les 2 minutes si la chaîne configurée est en live
-2. Lorsqu'un stream commence, une notification est envoyée dans le canal configuré
-3. Chaque serveur Discord peut avoir sa propre configuration Twitch
-4. Les configurations sont stockées dans une base de données SQLite
+1. L'utilisateur utilise `/setup connect` dans Discord
+2. Le bot génère un lien OAuth unique
+3. L'utilisateur clique sur le lien et s'authentifie avec Twitch
+4. Le bot récupère automatiquement :
+   - Le token d'accès OAuth
+   - Les informations de la chaîne (nom, ID, etc.)
+5. Le bot vérifie toutes les 2 minutes si la chaîne est en live
+6. Lorsqu'un stream commence, une notification est envoyée dans le canal configuré
+
+## 🌐 Production
+
+Pour utiliser le bot en production, vous devez :
+
+1. **Configurer un domaine** avec un serveur web
+2. **Mettre à jour l'URI de redirection** dans votre application Twitch :
+   - Allez sur https://dev.twitch.tv/console/apps
+   - Modifiez votre application
+   - Ajoutez `https://votre-domaine.com/oauth/callback` dans OAuth Redirect URLs
+3. **Mettre à jour `.env`** :
+   ```env
+   TWITCH_REDIRECT_URI=https://votre-domaine.com/oauth/callback
+   ```
+4. **Configurer un reverse proxy** (nginx, Apache, etc.) pour rediriger `/oauth/callback` vers `http://localhost:3000/oauth/callback`
 
 ## 🐛 Dépannage
 
@@ -160,12 +195,16 @@ twitch-bot-discord/
 
 ### Les notifications ne fonctionnent pas
 - Vérifiez que le canal de notification est configuré (`/setup status`)
-- Vérifiez que les credentials Twitch sont corrects (`/setup test`)
-- Vérifiez que le nom de la chaîne est exact (sensible à la casse)
+- Vérifiez que vous êtes connecté (`/setup status`)
+- Vérifiez que le serveur OAuth est démarré (port 3000 par défaut)
 
-### Erreur de token
-- Vérifiez que le token dans `.env` est correct
-- Vérifiez que le bot n'est pas banni du serveur
+### Erreur OAuth
+- Vérifiez que `TWITCH_CLIENT_ID` et `TWITCH_CLIENT_SECRET` sont corrects
+- Vérifiez que l'URI de redirection dans Twitch correspond à `TWITCH_REDIRECT_URI`
+- Vérifiez que le port 3000 (ou celui configuré) n'est pas déjà utilisé
+
+### Token expiré
+- Si votre token expire, utilisez `/setup disconnect` puis `/setup connect` pour vous reconnecter
 
 ## 📄 Licence
 

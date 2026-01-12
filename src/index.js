@@ -1,10 +1,14 @@
 import { Client, GatewayIntentBits, Collection, ActivityType } from 'discord.js';
+import { config } from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readdirSync } from 'fs';
 import logger from './utils/logger.js';
 import TwitchService from './services/TwitchService.js';
 import Database from './utils/Database.js';
+import OAuthService from './services/OAuthService.js';
+
+config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -31,6 +35,7 @@ class TwitchDiscordBot {
     this.client.cooldowns = new Collection();
     this.database = new Database();
     this.twitchServices = new Map(); // Map pour stocker les services Twitch par guild
+    this.oauthService = null;
   }
 
   async loadCommands() {
@@ -68,6 +73,27 @@ class TwitchDiscordBot {
     }
   }
 
+  async initializeOAuth() {
+    const twitchClientId = process.env.TWITCH_CLIENT_ID;
+    const twitchClientSecret = process.env.TWITCH_CLIENT_SECRET;
+    const redirectUri = process.env.TWITCH_REDIRECT_URI || 'http://localhost:3000/oauth/callback';
+    const oauthPort = parseInt(process.env.OAUTH_PORT || '3000');
+
+    if (!twitchClientId || !twitchClientSecret) {
+      logger.warn('TWITCH_CLIENT_ID ou TWITCH_CLIENT_SECRET non défini. Le service OAuth ne sera pas disponible.');
+      logger.warn('Pour activer OAuth, ajoutez ces variables dans votre fichier .env');
+      return;
+    }
+
+    try {
+      this.oauthService = new OAuthService(twitchClientId, twitchClientSecret, redirectUri, oauthPort);
+      await this.oauthService.startServer();
+      logger.info('Service OAuth Twitch initialisé avec succès');
+    } catch (error) {
+      logger.error('Erreur lors de l\'initialisation du service OAuth:', error);
+    }
+  }
+
   async loadExistingConfigurations() {
     // Charger toutes les configurations existantes et démarrer les services Twitch
     try {
@@ -79,14 +105,21 @@ class TwitchDiscordBot {
         const settings = config.value;
 
         if (settings.isConfigured && 
-            settings.twitchClientId && 
-            settings.twitchClientSecret && 
-            settings.twitchChannelName) {
+            settings.twitchAccessToken && 
+            settings.twitchChannelName &&
+            settings.twitchChannelId) {
           try {
+            // Vérifier si le token est expiré
+            if (settings.twitchTokenExpiry && Date.now() > settings.twitchTokenExpiry) {
+              logger.warn(`Token expiré pour le serveur ${guildId}, reconnexion nécessaire`);
+              continue;
+            }
+
             const twitchService = new TwitchService(
-              settings.twitchClientId,
-              settings.twitchClientSecret,
+              process.env.TWITCH_CLIENT_ID,
+              settings.twitchAccessToken,
               settings.twitchChannelName,
+              settings.twitchChannelId,
               guildId
             );
 
@@ -110,9 +143,12 @@ class TwitchDiscordBot {
       // Vérifier que le token Discord est présent
       if (!process.env.DISCORD_TOKEN) {
         logger.error('DISCORD_TOKEN manquant dans les variables d\'environnement');
-        logger.error('Veuillez définir uniquement DISCORD_TOKEN dans votre fichier .env');
+        logger.error('Veuillez définir DISCORD_TOKEN dans votre fichier .env');
         process.exit(1);
       }
+
+      // Initialiser le service OAuth
+      await this.initializeOAuth();
 
       await this.loadCommands();
       await this.loadEvents();
@@ -136,6 +172,11 @@ bot.start();
 // Gestion propre de l'arrêt
 process.on('SIGINT', async () => {
   logger.info('Arrêt du bot...');
+  
+  // Arrêter le serveur OAuth
+  if (bot.oauthService) {
+    bot.oauthService.stopServer();
+  }
   
   // Arrêter tous les services Twitch
   for (const [guildId, service] of bot.twitchServices) {

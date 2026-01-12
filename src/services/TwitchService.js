@@ -4,52 +4,25 @@ import { EmbedBuilder } from 'discord.js';
 import logger from '../utils/logger.js';
 
 class TwitchService {
-  constructor(clientId, clientSecret, channelName, guildId = null) {
+  constructor(clientId, accessToken, channelName, channelId, guildId = null) {
     this.clientId = clientId;
-    this.clientSecret = clientSecret;
+    this.accessToken = accessToken;
     this.channelName = channelName;
+    this.channelId = channelId;
     this.guildId = guildId;
-    this.accessToken = null;
     this.isLive = false;
     this.lastStreamData = null;
     this.checkInterval = null;
   }
 
-  async getAccessToken() {
-    try {
-      const response = await axios.post(
-        'https://id.twitch.tv/oauth2/token',
-        null,
-        {
-          params: {
-            client_id: this.clientId,
-            client_secret: this.clientSecret,
-            grant_type: 'client_credentials',
-          },
-        }
-      );
-
-      this.accessToken = response.data.access_token;
-      logger.info(`Token Twitch obtenu avec succès pour ${this.channelName}`);
-      return this.accessToken;
-    } catch (error) {
-      logger.error('Erreur lors de l\'obtention du token Twitch:', error);
-      throw error;
-    }
-  }
-
   async getChannelInfo() {
-    if (!this.accessToken) {
-      await this.getAccessToken();
-    }
-
     try {
       const response = await axios.get(
-        `https://api.twitch.tv/helix/users?login=${this.channelName}`,
+        `https://api.twitch.tv/helix/users?id=${this.channelId}`,
         {
           headers: {
-            'Client-ID': this.clientId,
             'Authorization': `Bearer ${this.accessToken}`,
+            'Client-ID': this.clientId,
           },
         }
       );
@@ -61,8 +34,8 @@ class TwitchService {
       return response.data.data[0];
     } catch (error) {
       if (error.response?.status === 401) {
-        await this.getAccessToken();
-        return this.getChannelInfo();
+        logger.warn('Token OAuth expiré, rafraîchissement nécessaire');
+        throw new Error('Token expiré');
       }
       logger.error('Erreur lors de la récupération des infos de la chaîne:', error);
       throw error;
@@ -70,18 +43,13 @@ class TwitchService {
   }
 
   async checkStreamStatus() {
-    if (!this.accessToken) {
-      await this.getAccessToken();
-    }
-
     try {
-      const channelInfo = await this.getChannelInfo();
       const response = await axios.get(
-        `https://api.twitch.tv/helix/streams?user_id=${channelInfo.id}`,
+        `https://api.twitch.tv/helix/streams?user_id=${this.channelId}`,
         {
           headers: {
-            'Client-ID': this.clientId,
             'Authorization': `Bearer ${this.accessToken}`,
+            'Client-ID': this.clientId,
           },
         }
       );
@@ -91,17 +59,18 @@ class TwitchService {
       this.isLive = !!streamData;
 
       if (streamData) {
+        const channelInfo = await this.getChannelInfo();
         this.lastStreamData = {
           ...streamData,
           user: channelInfo,
         };
       }
 
-      return { isLive: this.isLive, streamData, wasLive };
+      return { isLive: this.isLive, streamData: this.lastStreamData, wasLive };
     } catch (error) {
       if (error.response?.status === 401) {
-        await this.getAccessToken();
-        return this.checkStreamStatus();
+        logger.warn('Token OAuth expiré lors de la vérification du stream');
+        throw new Error('Token expiré - reconnexion nécessaire');
       }
       logger.error('Erreur lors de la vérification du stream:', error);
       return { isLive: false, streamData: null, wasLive: this.isLive };
@@ -133,7 +102,6 @@ class TwitchService {
 
   async initialize() {
     try {
-      await this.getAccessToken();
       await this.getChannelInfo();
       logger.info(`Service Twitch initialisé pour ${this.channelName}`);
       return true;
@@ -178,7 +146,11 @@ class TwitchService {
           }
         }
       } catch (error) {
-        logger.error('Erreur lors de la vérification du stream:', error);
+        if (error.message === 'Token expiré - reconnexion nécessaire') {
+          logger.warn(`Token expiré pour le serveur ${guildId}, l'utilisateur doit se reconnecter`);
+        } else {
+          logger.error('Erreur lors de la vérification du stream:', error);
+        }
       }
     });
 

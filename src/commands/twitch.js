@@ -24,7 +24,7 @@ export default {
       const embed = new EmbedBuilder()
         .setColor('#FF9900')
         .setTitle('⚠️ Configuration requise')
-        .setDescription('Le bot n\'est pas encore configuré pour ce serveur.\n\nUtilisez `/setup twitch` pour configurer vos credentials Twitch.')
+        .setDescription('Le bot n\'est pas encore configuré pour ce serveur.\n\nUtilisez `/setup connect` pour vous connecter avec votre compte Twitch.')
         .setTimestamp();
 
       return interaction.reply({ embeds: [embed], ephemeral: true });
