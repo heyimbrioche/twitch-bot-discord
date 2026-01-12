@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Collection, ActivityType } from 'discord.js';
+import { Client, GatewayIntentBits, Collection, ActivityType, Events } from 'discord.js';
 import { config } from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -165,7 +165,7 @@ class TwitchDiscordBot {
       await this.client.login(process.env.DISCORD_TOKEN);
       
       // Attendre que le bot soit prêt avant de charger les configurations
-      this.client.once('ready', async () => {
+      this.client.once(Events.ClientReady, async () => {
         await this.loadExistingConfigurations();
         logger.info('Bot démarré avec succès!');
       });
