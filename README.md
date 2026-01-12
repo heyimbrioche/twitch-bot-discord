@@ -112,14 +112,14 @@ DISCORD_GUILD_ID=votre_guild_id
 
 ### Configuration via Discord
 
-Une fois le bot démarré, utilisez ces commandes dans votre serveur Discord :
+Une fois le bot démarré, c'est très simple :
 
-#### 0. Configurer les credentials Twitch OAuth (Propriétaire du bot uniquement)
+#### 1. Configuration OAuth (Propriétaire du bot uniquement - Une seule fois)
 
-**⚠️ IMPORTANT :** Avant que les utilisateurs puissent se connecter, le propriétaire du bot doit configurer les credentials Twitch OAuth :
+**⚠️ IMPORTANT :** Avant que les utilisateurs puissent utiliser le bot, le propriétaire du bot doit configurer les credentials Twitch OAuth :
 
 ```
-/setup oauth client_id:<votre_client_id> client_secret:<votre_secret> [redirect_uri:<uri>] [port:<port>]
+/setup admin oauth client_id:<votre_client_id> client_secret:<votre_secret> [redirect_uri:<uri>] [port:<port>]
 ```
 
 **Comment obtenir les credentials Twitch OAuth ?**
@@ -129,32 +129,31 @@ Une fois le bot démarré, utilisez ces commandes dans votre serveur Discord :
 - Générez un **Client Secret**
 - Dans **OAuth Redirect URLs**, ajoutez : `http://localhost:3000/oauth/callback`
 
-> 💡 **Note** : Seul le propriétaire du bot (celui qui a créé l'application Discord) peut exécuter cette commande.
+> 💡 **Note** : Cette étape n'est nécessaire qu'une seule fois. Seul le propriétaire du bot peut l'exécuter.
 
-#### 1. Se connecter avec Twitch
+#### 2. Configuration du serveur (Simple et rapide !)
+
+Pour chaque serveur Discord, utilisez simplement :
+
 ```
-/setup connect
+/setup channel:#notifications message:Votre message personnalisé
 ```
-Cliquez sur le bouton "Se connecter avec Twitch", autorisez l'application, et toutes vos informations seront automatiquement récupérées !
+
+**Exemple :**
+```
+/setup channel:#streams message:@everyone 🔴 Nouveau stream en cours !
+```
+
+Le bot vous enverra un message **éphemère** (visible uniquement par vous) avec un bouton **"Se connecter avec Twitch"**. Cliquez dessus, autorisez l'application, et c'est terminé ! 🎉
 
 > ⚠️ **Note** : Vous devez être le propriétaire de la chaîne Twitch que vous souhaitez surveiller.
 
-#### 2. Définir le canal de notifications
-```
-/setup channel channel:#notifications
-```
-
-#### 3. Tester la configuration
-```
-/setup test
-```
-
-#### 4. Voir la configuration actuelle
+#### 3. Voir la configuration
 ```
 /setup status
 ```
 
-#### 5. Déconnecter votre compte
+#### 4. Déconnecter votre compte
 ```
 /setup disconnect
 ```
@@ -164,10 +163,8 @@ Cliquez sur le bouton "Se connecter avec Twitch", autorisez l'application, et to
 ### ⚙️ Configuration
 | Commande | Description |
 |----------|-------------|
-| `/setup oauth` | Configurer les credentials Twitch OAuth (Propriétaire bot uniquement) |
-| `/setup connect` | Se connecter avec votre compte Twitch (OAuth) |
-| `/setup channel` | Définir le canal de notifications |
-| `/setup test` | Tester la configuration Twitch |
+| `/setup channel:<canal> [message:<message>]` | Configurer le bot (canal + message + connexion Twitch) |
+| `/setup admin oauth` | Configurer les credentials Twitch OAuth (Propriétaire bot uniquement) |
 | `/setup status` | Voir la configuration actuelle |
 | `/setup disconnect` | Déconnecter votre compte Twitch |
 
