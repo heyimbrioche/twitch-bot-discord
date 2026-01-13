@@ -73,25 +73,70 @@ class TwitchDiscordBot {
     }
   }
 
-  async initializeOAuth() {
-    // Charger les credentials OAuth depuis la base de données
-    const oauthSettings = await this.database.getOAuthSettings();
+  async getOAuthCredentials() {
+    // Priorité 1: Charger depuis la configuration centralisée (src/config/twitch.js)
+    // Priorité 2: Charger depuis les variables d'environnement (.env)
+    // Priorité 3: Charger depuis la base de données (si configuré via /setup admin oauth)
+    
+    let clientId, clientSecret, redirectUri, oauthPort;
 
-    if (!oauthSettings.isConfigured) {
-      logger.warn('Les credentials Twitch OAuth ne sont pas configurés.');
-      logger.warn('Utilisez /setup oauth pour configurer les credentials OAuth.');
+    // Essayer la configuration centralisée
+    try {
+      const { TWITCH_CONFIG, isTwitchConfigured } = await import('./config/twitch.js');
+      if (isTwitchConfigured && TWITCH_CONFIG.CLIENT_ID && TWITCH_CONFIG.CLIENT_SECRET) {
+        clientId = TWITCH_CONFIG.CLIENT_ID;
+        clientSecret = TWITCH_CONFIG.CLIENT_SECRET;
+        redirectUri = TWITCH_CONFIG.REDIRECT_URI;
+        oauthPort = TWITCH_CONFIG.OAUTH_PORT;
+        logger.info('✅ Credentials OAuth chargés depuis la configuration centralisée');
+      }
+    } catch (error) {
+      // Fichier de config n'existe pas, continuer
+      logger.warn('Fichier de configuration Twitch non trouvé, utilisation des variables d\'environnement');
+    }
+
+    // Si pas dans la config centralisée, essayer .env
+    if (!clientId || !clientSecret) {
+      clientId = process.env.TWITCH_CLIENT_ID;
+      clientSecret = process.env.TWITCH_CLIENT_SECRET;
+      redirectUri = process.env.TWITCH_REDIRECT_URI || 'http://localhost:3000/oauth/callback';
+      oauthPort = parseInt(process.env.OAUTH_PORT) || 3000;
+    }
+
+    // Si pas dans .env, essayer la base de données
+    if (!clientId || !clientSecret) {
+      const oauthSettings = await this.database.getOAuthSettings();
+      if (oauthSettings.isConfigured) {
+        clientId = oauthSettings.twitchClientId;
+        clientSecret = oauthSettings.twitchClientSecret;
+        redirectUri = oauthSettings.redirectUri || redirectUri;
+        oauthPort = oauthSettings.oauthPort || oauthPort;
+      }
+    }
+
+    return { clientId, clientSecret, redirectUri, oauthPort };
+  }
+
+  async initializeOAuth() {
+    const { clientId, clientSecret, redirectUri, oauthPort } = await this.getOAuthCredentials();
+
+    // Vérifier que les credentials sont présents
+    if (!clientId || !clientSecret) {
+      logger.error('❌ Les credentials Twitch OAuth ne sont pas configurés.');
+      logger.error('💡 Ajoutez TWITCH_CLIENT_ID et TWITCH_CLIENT_SECRET dans votre fichier .env');
+      logger.error('💡 Ou utilisez /setup admin oauth pour les configurer via Discord');
       return;
     }
 
     try {
       this.oauthService = new OAuthService(
-        oauthSettings.twitchClientId,
-        oauthSettings.twitchClientSecret,
-        oauthSettings.redirectUri,
-        oauthSettings.oauthPort
+        clientId,
+        clientSecret,
+        redirectUri,
+        oauthPort
       );
       await this.oauthService.startServer();
-      logger.info('Service OAuth Twitch initialisé avec succès');
+      logger.info('✅ Service OAuth Twitch initialisé avec succès');
     } catch (error) {
       logger.error('Erreur lors de l\'initialisation du service OAuth:', error);
     }
@@ -118,15 +163,15 @@ class TwitchDiscordBot {
               continue;
             }
 
-            // Charger les credentials OAuth depuis la DB
-            const oauthSettings = await this.database.getOAuthSettings();
-            if (!oauthSettings.isConfigured) {
+            // Charger les credentials OAuth
+            const { clientId } = await this.getOAuthCredentials();
+            if (!clientId) {
               logger.warn(`Credentials OAuth non configurés, impossible de charger le service pour ${guildId}`);
               continue;
             }
 
             const twitchService = new TwitchService(
-              oauthSettings.twitchClientId,
+              clientId,
               settings.twitchAccessToken,
               settings.twitchChannelName,
               settings.twitchChannelId,

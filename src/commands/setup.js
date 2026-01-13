@@ -5,16 +5,21 @@ export default {
     .setName('setup')
     .setDescription('⚙️ Configurer le bot Twitch pour ce serveur')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-    .addChannelOption(option =>
-      option
+    .addSubcommand(subcommand =>
+      subcommand
         .setName('channel')
-        .setDescription('Le canal où envoyer les notifications Twitch')
-        .setRequired(true)
-    )
-    .addStringOption(option =>
-      option
-        .setName('message')
-        .setDescription('Message personnalisé à envoyer avec les notifications (optionnel)')
+        .setDescription('Configurer le canal et se connecter à Twitch')
+        .addChannelOption(option =>
+          option
+            .setName('canal')
+            .setDescription('Le canal où envoyer les notifications Twitch')
+            .setRequired(true)
+        )
+        .addStringOption(option =>
+          option
+            .setName('message')
+            .setDescription('Message personnalisé à envoyer avec les notifications (optionnel)')
+        )
     )
     .addSubcommandGroup(group =>
       group
@@ -60,11 +65,14 @@ export default {
     ),
   cooldown: 3,
   async execute(interaction, bot) {
-    // Si c'est une commande principale (sans subcommand), c'est la configuration simple
-    if (!interaction.options.getSubcommand()) {
-      const channel = interaction.options.getChannel('channel');
+    const subcommandGroup = interaction.options.getSubcommandGroup();
+    const subcommand = interaction.options.getSubcommand();
+    const guildId = interaction.guild.id;
+
+    // Subcommand "channel" - Configuration principale
+    if (subcommand === 'channel') {
+      const channel = interaction.options.getChannel('canal');
       const customMessage = interaction.options.getString('message');
-      const guildId = interaction.guild.id;
 
       if (channel.type !== 0) {
         return interaction.reply({
@@ -75,13 +83,12 @@ export default {
 
       await interaction.deferReply({ ephemeral: true });
 
-      // Vérifier que OAuth est configuré
-      const oauthSettings = await bot.database.getOAuthSettings();
-      if (!oauthSettings.isConfigured || !bot.oauthService) {
+      // Vérifier que OAuth est configuré et disponible
+      if (!bot.oauthService) {
         const embed = new EmbedBuilder()
           .setColor('#FF9900')
-          .setTitle('⚠️ Configuration OAuth requise')
-          .setDescription('Le bot n\'a pas encore été configuré avec les credentials Twitch OAuth.\n\n**Le propriétaire du bot doit d\'abord configurer OAuth avec :**\n\`/setup admin oauth client_id:<id> client_secret:<secret>\`\n\nUne fois configuré, vous pourrez vous connecter avec Twitch.')
+          .setTitle('⚠️ Service OAuth non disponible')
+          .setDescription('Le service OAuth Twitch n\'est pas initialisé.\n\n**Le propriétaire du bot doit vérifier que les credentials Twitch sont configurés dans `src/config/twitch.js`.**\n\nL\'application Twitch devrait être déjà créée et configurée dans le code.')
           .setTimestamp();
 
         return interaction.editReply({ embeds: [embed] });
@@ -157,10 +164,10 @@ export default {
           }
 
           // Créer et démarrer le nouveau service Twitch
-          const oauthSettings = await bot.database.getOAuthSettings();
+          const { clientId } = await bot.getOAuthCredentials();
           const TwitchService = (await import('../services/TwitchService.js')).default;
           const twitchService = new TwitchService(
-            oauthSettings.twitchClientId,
+            clientId,
             authData.accessToken,
             authData.userInfo.login,
             authData.userInfo.id,
@@ -204,10 +211,7 @@ export default {
       return;
     }
 
-    const subcommandGroup = interaction.options.getSubcommandGroup();
-    const subcommand = interaction.options.getSubcommand();
-    const guildId = interaction.guild.id;
-
+    // Subcommand "admin oauth" - Configuration OAuth (propriétaire uniquement)
     if (subcommandGroup === 'admin' && subcommand === 'oauth') {
         // Vérifier que l'utilisateur est le propriétaire du bot
         const application = await interaction.client.application.fetch();

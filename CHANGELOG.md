@@ -5,6 +5,27 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère à [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.1.0] - 2025-01-XX
+
+### ✨ Ajouté
+- Application Twitch centralisée intégrée dans le code (`src/config/twitch.js`)
+- Script d'initialisation interactif (`npm run setup`) pour configuration simplifiée
+- Support du déploiement global des commandes (sans DISCORD_GUILD_ID)
+- Embed de notification amélioré avec titre du stream, miniature et lien cliquable
+
+### 🔧 Modifié
+- **BREAKING** : Restructuration de la commande `/setup` - maintenant `/setup channel` au lieu de `/setup channel:#canal`
+- Simplification du processus d'installation - plus besoin de créer d'application Twitch manuellement
+- Chargement automatique des credentials Twitch depuis la configuration centralisée
+- Message de notification par défaut : `@everyone 🔴 **NOUVEAU STREAM!**`
+- Embed de notification avec titre du stream comme titre principal
+- Documentation mise à jour pour refléter la nouvelle simplicité d'utilisation
+
+### 🐛 Corrigé
+- Correction du format des commandes Discord (subcommands uniquement)
+- Amélioration de la gestion des erreurs OAuth
+- Validation automatique des credentials Twitch
+
 ## [1.0.0] - 2024-01-XX
 
 ### ✨ Ajouté

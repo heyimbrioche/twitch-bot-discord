@@ -81,17 +81,23 @@ class TwitchService {
     const thumbnail = streamData.thumbnail_url
       .replace('{width}', '1280')
       .replace('{height}', '720');
+    
+    const streamUrl = `https://twitch.tv/${streamData.user.login}`;
 
     return new EmbedBuilder()
       .setColor('#9146FF')
-      .setTitle(`🔴 ${streamData.user.display_name} est en live!`)
-      .setDescription(streamData.title)
-      .setURL(`https://twitch.tv/${streamData.user.login}`)
+      .setTitle(streamData.title || `${streamData.user.display_name} est en live!`)
+      .setURL(streamUrl)
+      .setAuthor({
+        name: `🔴 ${streamData.user.display_name} est en live!`,
+        url: streamUrl,
+        iconURL: streamData.user.profile_image_url || undefined
+      })
       .setImage(thumbnail)
       .addFields(
         { name: '🎮 Jeu', value: streamData.game_name || 'Aucun jeu', inline: true },
         { name: '👁️ Spectateurs', value: streamData.viewer_count.toString(), inline: true },
-        { name: '📺 Chaîne', value: `[Regarder sur Twitch](https://twitch.tv/${streamData.user.login})`, inline: false }
+        { name: '📺 Regarder', value: `[Cliquez ici pour regarder le stream](${streamUrl})`, inline: false }
       )
       .setTimestamp(new Date(streamData.started_at))
       .setFooter({ 

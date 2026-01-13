@@ -1,5 +1,7 @@
 # ⚡ Guide de Démarrage Rapide
 
+> 💡 **Note importante** : Ce guide est pour le **propriétaire du bot** (celui qui héberge le bot). Les **utilisateurs finaux** n'ont qu'à utiliser `/setup channel` dans Discord et se connecter à Twitch - aucune configuration technique requise !
+
 Ce guide vous aidera à installer et configurer le bot en moins de 10 minutes.
 
 ## 📋 Prérequis
@@ -37,33 +39,51 @@ npm install
    - Permissions: `Administrator`
 8. Copiez l'URL et ouvrez-la pour inviter le bot
 
-### Étape 4 : Créer une Application Twitch
+### Étape 4 : Application Twitch - DÉJÀ CRÉÉE ! ✅
 
-1. Allez sur https://dev.twitch.tv/console/apps
-2. Cliquez sur **"Register Your Application"**
-3. Remplissez :
-   - **Name** : "Mon Bot Discord"
-   - **OAuth Redirect URLs** : `http://localhost:3000/oauth/callback`
-   - **Category** : Application Integration
-4. Cliquez sur **"Create"**
-5. Copiez le **Client ID**
-6. Cliquez sur **"New Secret"** et copiez le **Client Secret**
+> 🎉 **Excellente nouvelle** : L'application Twitch a été créée automatiquement par le développeur du bot !
+
+**Vous n'avez RIEN à faire** - l'application Twitch est déjà configurée dans `src/config/twitch.js`.
+
+> 💡 **Note** : Les utilisateurs finaux n'ont qu'à utiliser `/setup channel` dans Discord et se connecter à Twitch - aucune configuration technique requise !
 
 ### Étape 5 : Configurer le fichier .env
 
-Créez un fichier `.env` à la racine :
+1. Créez un fichier `.env` à la racine du projet
+2. Copiez le contenu suivant et remplacez les valeurs par vos propres credentials :
 
 ```env
+# ============================================
+# Configuration Discord
+# ============================================
 DISCORD_TOKEN=votre_token_discord
-TWITCH_CLIENT_ID=votre_twitch_client_id
-TWITCH_CLIENT_SECRET=votre_twitch_client_secret
-TWITCH_REDIRECT_URI=http://localhost:3000/oauth/callback
-OAUTH_PORT=3000
 DISCORD_CLIENT_ID=votre_discord_client_id
+
+# Optionnel - Uniquement pour développement/test
 DISCORD_GUILD_ID=votre_guild_id
+
+# ============================================
+# Configuration Twitch OAuth
+# ============================================
+# ✅ L'application Twitch est déjà créée et configurée dans src/config/twitch.js
+# Vous n'avez RIEN à mettre ici pour Twitch - tout est automatique !
+# (Ces variables sont optionnelles si vous voulez override la config centralisée)
+# TWITCH_CLIENT_ID=votre_twitch_client_id
+# TWITCH_CLIENT_SECRET=votre_twitch_client_secret
+# TWITCH_REDIRECT_URI=http://localhost:3000/oauth/callback
+# OAUTH_PORT=3000
 ```
 
-> 💡 **Astuce** : Le Client ID Discord se trouve dans l'onglet "General Information" de votre application Discord. Le Guild ID s'obtient en activant le mode développeur dans Discord, puis clic droit sur votre serveur → "Copier l'ID".
+> ⚠️ **SÉCURITÉ** : 
+> - Le fichier `.env` est dans `.gitignore` et ne sera **jamais** commité sur GitHub
+> - Ne partagez **jamais** vos credentials (Token Discord, Client Secret Twitch)
+> - Ces credentials sont pour le propriétaire du bot uniquement
+> 
+> 💡 **Où trouver les valeurs** :
+> - **DISCORD_TOKEN** : Discord Developer Portal > Bot > Token
+> - **DISCORD_CLIENT_ID** : Discord Developer Portal > General Information
+> - **DISCORD_GUILD_ID** : Mode développeur Discord > Clic droit sur serveur > "Copier l'ID"
+> - **TWITCH_CLIENT_ID & SECRET** : De l'étape 4 ci-dessus
 
 ### Étape 6 : Déployer les commandes
 
@@ -86,32 +106,28 @@ Service OAuth Twitch initialisé avec succès
 Bot démarré avec succès!
 ```
 
-## 🎮 Configuration dans Discord
+## 🎮 Pour les utilisateurs finaux (Simple et rapide ! 🚀)
 
-### 1. Se connecter avec Twitch
+> 💡 **Note** : Cette section est pour les utilisateurs finaux du bot. Le propriétaire du bot a déjà configuré et démarré le bot.
+
+### Configuration en une étape !
 
 Dans votre serveur Discord, tapez :
 ```
-/setup connect
-```
-
-Cliquez sur le bouton "Se connecter avec Twitch", autorisez l'application, et c'est fait !
-
-### 2. Définir le canal de notifications
-
-```
-/setup channel channel:#notifications
+/setup channel canal:#notifications
 ```
 
 Remplacez `#notifications` par le canal de votre choix.
 
-### 3. Tester
+Le bot vous enverra un message avec un bouton **"Se connecter avec Twitch"**. Cliquez dessus, autorisez l'application, et c'est terminé ! 🎉
 
-```
-/setup test
-```
-
-Si tout fonctionne, vous verrez un message de confirmation !
+> 💡 **Note** : 
+> - Vous pouvez aussi ajouter un message personnalisé :
+>   ```
+>   /setup channel canal:#notifications message:@everyone 🔴 Nouveau stream !
+>   ```
+> - Aucune configuration technique requise - tout se fait via Discord !
+> - Le propriétaire du bot a déjà configuré tout ce qui est nécessaire
 
 ## ✅ Vérification
 
